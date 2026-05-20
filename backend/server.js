@@ -51,7 +51,7 @@ if (process.env.NODE_ENV === 'production') {
   const frontendPath = path.join(__dirname, '../frontend/dist');
   app.use(express.static(frontendPath));
 
-  app.get('*', (req, res, next) => {
+  app.get(/.*/, (req, res, next) => {
     // Only serve index.html if the request doesn't start with /api
     if (!req.url.startsWith('/api')) {
       res.sendFile(path.resolve(frontendPath, 'index.html'));
