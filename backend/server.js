@@ -36,6 +36,7 @@ const startServer = async () => {
     app.use('/api/ai', aiRoutes);
     app.use('/api/upload', uploadRoutes);
 
+    const path = require('path');
     if (process.env.NODE_ENV === 'production') {
       const frontendPath = path.join(__dirname, '../frontend/dist');
       app.use(express.static(frontendPath));
