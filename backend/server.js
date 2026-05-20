@@ -39,7 +39,9 @@ const startServer = async () => {
     app.use(cors({
       origin:
         process.env.NODE_ENV === 'production'
-          ? process.env.FRONTEND_URL || '*'
+          ? [ process.env.FRONTEND_URL,
+            'https://ecommerce-website-6awz.vercel.app'
+          ]
           : 'http://localhost:5173',
       credentials: true,
     }));
