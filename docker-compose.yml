@@ -1,0 +1,34 @@
+version: '3.8'
+
+services:
+  backend:
+    build: ./backend
+    container_name: luxe_ecommerce_backend
+    ports:
+      - "5000:5000"
+    env_file:
+      - ./backend/.env
+    volumes:
+      - ./backend/uploads:/app/uploads
+    restart: always
+
+  frontend:
+    build: ./frontend
+    container_name: luxe_ecommerce_frontend
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+    restart: always
+
+# Optional: Add MongoDB service if you want to run it locally
+# mongodb:
+#   image: mongo:latest
+#   container_name: luxe_ecommerce_db
+#   ports:
+#     - "27017:27017"
+#   volumes:
+#     - mongo-data:/data/db
+
+# volumes:
+#   mongo-data:
