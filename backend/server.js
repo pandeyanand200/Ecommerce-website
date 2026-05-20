@@ -1,10 +1,15 @@
-const path = require('path');
-require('dotenv').config({ path: path.resolve(__dirname, '.env') });
+// MUST be the absolute first line
+const dotenv = require('dotenv');
+dotenv.config();
+
 const express = require('express');
 const cors = require('cors');
 const morgan = require('morgan');
+const path = require('path');
 const connectDB = require('./config/db');
 const connectCloudinary = require('./config/cloudinary');
+
+// Route Imports
 const authRoutes = require('./routes/authRoutes');
 const productRoutes = require('./routes/productRoutes');
 const orderRoutes = require('./routes/orderRoutes');
@@ -15,34 +20,34 @@ const uploadRoutes = require('./routes/uploadRoutes');
 
 const startServer = async () => {
   try {
-
     console.log('Attempting MongoDB connection...');
     console.log('MONGO_URI exists:', !!process.env.MONGO_URI);
     console.log('NODE_ENV:', process.env.NODE_ENV);
 
     await connectDB();
-
-    console.log('Attempting Cloudinary connection...');
-    console.log('CLOUDINARY_CLOUD_NAME exists:', !!process.env.CLOUDINARY_CLOUD_NAME);
-    console.log('CLOUDINARY_API_KEY exists:', !!process.env.CLOUDINARY_API_KEY);
-    console.log('CLOUDINARY_API_SECRET exists:', !!process.env.CLOUDINARY_API_SECRET);
+    console.log('MongoDB connected successfully');
 
     connectCloudinary();
+    console.log('Cloudinary connected successfully');
 
     const app = express();
 
+    // Body parser
     app.use(express.json());
+
+    // CORS — accepts all origins in production so your Render frontend works
     app.use(cors({
-      origin: process.env.NODE_ENV === 'production'
-        ? process.env.FRONTEND_URL || true
-        : 'http://localhost:5173',
+      origin:
+        process.env.NODE_ENV === 'production'
+          ? process.env.FRONTEND_URL || '*'
+          : 'http://localhost:5173',
       credentials: true,
     }));
 
-    if (process.env.NODE_ENV === 'development') {
-      app.use(morgan('dev'));
-    }
+    // Logging — runs in both development and production for easier debugging
+    app.use(morgan('dev'));
 
+    // Mount all API routers FIRST before the frontend catch-all
     app.use('/api/auth', authRoutes);
     app.use('/api/products', productRoutes);
     app.use('/api/orders', orderRoutes);
@@ -51,12 +56,14 @@ const startServer = async () => {
     app.use('/api/ai', aiRoutes);
     app.use('/api/upload', uploadRoutes);
 
+    // Serve React frontend in production
     if (process.env.NODE_ENV === 'production') {
       const frontendPath = path.join(__dirname, '../frontend/dist');
       app.use(express.static(frontendPath));
 
+      // Catch-all for React Router — must come AFTER all API routes
       app.get(/(.*)/, (req, res, next) => {
-        if (req.url.startsWith('/api')) {
+        if (req.path.startsWith('/api')) {
           return next();
         }
         res.sendFile(path.resolve(frontendPath, 'index.html'));
@@ -67,10 +74,13 @@ const startServer = async () => {
       });
     }
 
-    app.use('/api/*', (req, res) => {
+    // 404 handler for unmatched API routes
+    // Fixed: Express 5 requires /api/*path instead of /api/*
+    app.use('/api/*path', (req, res) => {
       res.status(404).json({ message: 'API route not found' });
     });
 
+    // Global error handling middleware
     app.use((err, req, res, next) => {
       console.error('SERVER ERROR:', err);
       const statusCode = res.statusCode === 200 ? 500 : res.statusCode;
@@ -82,7 +92,9 @@ const startServer = async () => {
 
     const PORT = process.env.PORT || 5000;
     const server = app.listen(PORT, () => {
-      console.log(`Server running in ${process.env.NODE_ENV} mode on port ${PORT}`);
+      console.log(
+        `Server running in ${process.env.NODE_ENV} mode on port ${PORT}`
+      );
     });
 
     process.on('unhandledRejection', (err) => {
